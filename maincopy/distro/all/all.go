@@ -13,19 +13,14 @@ import (
 	_ "github.com/xtls/xray-core/app/log/command"
 
 	_ "github.com/xtls/xray-core/app/proxyman/command"
-	// _ "github.com/xtls/xray-core/app/stats/command"
 
 	// Developer preview services
 	_ "github.com/xtls/xray-core/app/observatory/command"
 
 	// Other optional features.
 	_ "github.com/xtls/xray-core/app/log"
-	// _ "github.com/xtls/xray-core/app/metrics"
 
-	// _ "github.com/xtls/xray-core/app/policy"
-	// _ "github.com/xtls/xray-core/app/reverse"
 	_ "github.com/xtls/xray-core/app/router"
-	// _ "github.com/xtls/xray-core/app/stats"
 
 	// Fix dependency cycle caused by core import in internet package
 	_ "github.com/xtls/xray-core/transport/internet/tagged/taggedimpl"
@@ -40,17 +35,11 @@ import (
 	_ "github.com/xtls/xray-core/proxy/vless/inbound"
 	_ "github.com/xtls/xray-core/proxy/vless/outbound"
 
-	// Transports
-	// _ "github.com/xtls/xray-core/transport/internet/domainsocket"
-	// _ "github.com/xtls/xray-core/transport/internet/grpc"
 	_ "github.com/xtls/xray-core/transport/internet/http"
-	// _ "github.com/xtls/xray-core/transport/internet/kcp"
-	// _ "github.com/xtls/xray-core/transport/internet/quic"
+
 	_ "github.com/xtls/xray-core/transport/internet/tcp"
 	_ "github.com/xtls/xray-core/transport/internet/tls"
 	_ "github.com/xtls/xray-core/transport/internet/udp"
-
-	// _ "github.com/xtls/xray-core/transport/internet/websocket"
 
 	// Transport headers
 	_ "github.com/xtls/xray-core/transport/internet/headers/http"
