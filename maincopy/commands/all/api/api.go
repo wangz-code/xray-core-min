@@ -12,9 +12,6 @@ var CmdAPI = &base.Command{
 `,
 	Commands: []*base.Command{
 		cmdRestartLogger,
-		cmdGetStats,
-		cmdQueryStats,
-		cmdSysStats,
 		cmdAddInbounds,
 		cmdAddOutbounds,
 		cmdRemoveInbounds,

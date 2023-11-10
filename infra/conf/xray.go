@@ -9,7 +9,6 @@ import (
 
 	"github.com/xtls/xray-core/app/dispatcher"
 	"github.com/xtls/xray-core/app/proxyman"
-	"github.com/xtls/xray-core/app/stats"
 	"github.com/xtls/xray-core/common/serial"
 	core "github.com/xtls/xray-core/core"
 	"github.com/xtls/xray-core/transport/internet"
@@ -352,13 +351,6 @@ func (c *OutboundDetourConfig) Build() (*core.OutboundHandlerConfig, error) {
 	}, nil
 }
 
-type StatsConfig struct{}
-
-// Build implements Buildable.
-func (c *StatsConfig) Build() (*stats.Config, error) {
-	return &stats.Config{}, nil
-}
-
 type Config struct {
 	// Port of this Point server.
 	// Deprecated: Port exists for historical compatibility
@@ -389,7 +381,6 @@ type Config struct {
 	Policy          *PolicyConfig          `json:"policy"`
 	API             *APIConfig             `json:"api"`
 	Metrics         *MetricsConfig         `json:"metrics"`
-	Stats           *StatsConfig           `json:"stats"`
 	Observatory     *ObservatoryConfig     `json:"observatory"`
 }
 
@@ -436,9 +427,6 @@ func (c *Config) Override(o *Config, fn string) {
 	}
 	if o.Metrics != nil {
 		c.Metrics = o.Metrics
-	}
-	if o.Stats != nil {
-		c.Stats = o.Stats
 	}
 	if o.Observatory != nil {
 		c.Observatory = o.Observatory
@@ -534,13 +522,6 @@ func (c *Config) Build() (*core.Config, error) {
 			return nil, err
 		}
 		config.App = append(config.App, serial.ToTypedMessage(metricsConf))
-	}
-	if c.Stats != nil {
-		statsConf, err := c.Stats.Build()
-		if err != nil {
-			return nil, err
-		}
-		config.App = append(config.App, serial.ToTypedMessage(statsConf))
 	}
 
 	var logConfMsg *serial.TypedMessage
