@@ -1,4 +1,4 @@
-package reverse
+package mux
 
 import "github.com/xtls/xray-core/common/errors"
 

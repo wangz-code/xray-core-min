@@ -390,7 +390,6 @@ type Config struct {
 	API             *APIConfig             `json:"api"`
 	Metrics         *MetricsConfig         `json:"metrics"`
 	Stats           *StatsConfig           `json:"stats"`
-	Reverse         *ReverseConfig         `json:"reverse"`
 	Observatory     *ObservatoryConfig     `json:"observatory"`
 }
 
@@ -440,9 +439,6 @@ func (c *Config) Override(o *Config, fn string) {
 	}
 	if o.Stats != nil {
 		c.Stats = o.Stats
-	}
-	if o.Reverse != nil {
-		c.Reverse = o.Reverse
 	}
 	if o.Observatory != nil {
 		c.Observatory = o.Observatory
@@ -572,13 +568,6 @@ func (c *Config) Build() (*core.Config, error) {
 		config.App = append(config.App, serial.ToTypedMessage(pc))
 	}
 
-	if c.Reverse != nil {
-		r, err := c.Reverse.Build()
-		if err != nil {
-			return nil, err
-		}
-		config.App = append(config.App, serial.ToTypedMessage(r))
-	}
 	if c.Observatory != nil {
 		r, err := c.Observatory.Build()
 		if err != nil {
