@@ -20,12 +20,11 @@ main.go 放倒外面其他的只要 config.json 中没有使用的全都删除,�
 ### Linux / macOS
 
 ```bash
-go build -o xray -trimpath -ldflags "-s -w -buildid=" ./main
 go build -o xray -trimpath -ldflags "-s -w -buildid=" main.go
 
 
-# 在mac下编译后xray大概21M
-# upx 之后xray大概  9.1M
+# 在mac下编译后xray大概18M
+# upx 之后xray大概  7.8M
 ```
 
 ### openwrt mipsel_24kc
