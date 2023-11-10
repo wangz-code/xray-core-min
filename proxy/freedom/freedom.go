@@ -185,7 +185,6 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, dialer inte
 
 	requestDone := func() error {
 		defer timer.SetTimeout(plcy.Timeouts.DownlinkOnly)
-		log.Println("请求完成", destination.Address, ":", destination.Port)
 		var writer buf.Writer
 		if destination.Network == net.Network_TCP {
 			log.Println("TCP", h.config.Fragment)
@@ -213,7 +212,6 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, dialer inte
 
 	responseDone := func() error {
 		defer timer.SetTimeout(plcy.Timeouts.UplinkOnly)
-		log.Println("响应完成", destination.Address)
 		if destination.Network == net.Network_TCP {
 			var writeConn net.Conn
 			if inbound := session.InboundFromContext(ctx); inbound != nil && inbound.Conn != nil && useSplice {

@@ -7,7 +7,7 @@ import (
 	"github.com/xtls/xray-core/common"
 	"github.com/xtls/xray-core/common/buf"
 	"github.com/xtls/xray-core/common/cmdarg"
-	"github.com/xtls/xray-core/main/confloader"
+	"github.com/xtls/xray-core/maincopy/confloader"
 	"google.golang.org/protobuf/proto"
 )
 

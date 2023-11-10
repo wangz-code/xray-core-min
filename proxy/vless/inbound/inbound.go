@@ -31,7 +31,6 @@ import (
 	"github.com/xtls/xray-core/proxy"
 	"github.com/xtls/xray-core/proxy/vless"
 	"github.com/xtls/xray-core/proxy/vless/encoding"
-	"github.com/xtls/xray-core/transport/internet/reality"
 	"github.com/xtls/xray-core/transport/internet/stat"
 	"github.com/xtls/xray-core/transport/internet/tls"
 )
@@ -223,12 +222,6 @@ func (h *Handler) Process(ctx context.Context, network net.Network, connection s
 			alpn := ""
 			if tlsConn, ok := iConn.(*tls.Conn); ok {
 				cs := tlsConn.ConnectionState()
-				name = cs.ServerName
-				alpn = cs.NegotiatedProtocol
-				newError("realName = " + name).AtInfo().WriteToLog(sid)
-				newError("realAlpn = " + alpn).AtInfo().WriteToLog(sid)
-			} else if realityConn, ok := iConn.(*reality.Conn); ok {
-				cs := realityConn.ConnectionState()
 				name = cs.ServerName
 				alpn = cs.NegotiatedProtocol
 				newError("realName = " + name).AtInfo().WriteToLog(sid)
@@ -464,9 +457,6 @@ func (h *Handler) Process(ctx context.Context, network net.Network, connection s
 					}
 					t = reflect.TypeOf(tlsConn.Conn).Elem()
 					p = uintptr(unsafe.Pointer(tlsConn.Conn))
-				} else if realityConn, ok := iConn.(*reality.Conn); ok {
-					t = reflect.TypeOf(realityConn.Conn).Elem()
-					p = uintptr(unsafe.Pointer(realityConn.Conn))
 				} else {
 					return newError("XTLS only supports TLS and REALITY directly for now.").AtWarning()
 				}

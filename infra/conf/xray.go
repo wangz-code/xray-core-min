@@ -17,27 +17,16 @@ import (
 
 var (
 	inboundConfigLoader = NewJSONConfigLoader(ConfigCreatorCache{
-		"dokodemo-door": func() interface{} { return new(DokodemoConfig) },
-		"http":          func() interface{} { return new(HTTPServerConfig) },
-		"shadowsocks":   func() interface{} { return new(ShadowsocksServerConfig) },
-		"socks":         func() interface{} { return new(SocksServerConfig) },
-		"vless":         func() interface{} { return new(VLessInboundConfig) },
-		"vmess":         func() interface{} { return new(VMessInboundConfig) },
-		"trojan":        func() interface{} { return new(TrojanServerConfig) },
+		"http":  func() interface{} { return new(HTTPServerConfig) },
+		"socks": func() interface{} { return new(SocksServerConfig) },
+		"vless": func() interface{} { return new(VLessInboundConfig) },
 	}, "protocol", "settings")
 
 	outboundConfigLoader = NewJSONConfigLoader(ConfigCreatorCache{
-		"blackhole":   func() interface{} { return new(BlackholeConfig) },
-		"loopback":    func() interface{} { return new(LoopbackConfig) },
-		"freedom":     func() interface{} { return new(FreedomConfig) },
-		"http":        func() interface{} { return new(HTTPClientConfig) },
-		"shadowsocks": func() interface{} { return new(ShadowsocksClientConfig) },
-		"socks":       func() interface{} { return new(SocksClientConfig) },
-		"vless":       func() interface{} { return new(VLessOutboundConfig) },
-		"vmess":       func() interface{} { return new(VMessOutboundConfig) },
-		"trojan":      func() interface{} { return new(TrojanClientConfig) },
-		"dns":         func() interface{} { return new(DNSOutboundConfig) },
-		"wireguard":   func() interface{} { return new(WireGuardConfig) },
+		"freedom": func() interface{} { return new(FreedomConfig) },
+		"http":    func() interface{} { return new(HTTPClientConfig) },
+		"socks":   func() interface{} { return new(SocksClientConfig) },
+		"vless":   func() interface{} { return new(VLessOutboundConfig) },
 	}, "protocol", "settings")
 
 	ctllog = log.New(os.Stderr, "xctl> ", 0)
@@ -260,9 +249,6 @@ func (c *InboundDetourConfig) Build() (*core.InboundHandlerConfig, error) {
 	if err != nil {
 		return nil, newError("failed to load inbound detour config.").Base(err)
 	}
-	if dokodemoConfig, ok := rawConfig.(*DokodemoConfig); ok {
-		receiverSettings.ReceiveOriginalDestination = dokodemoConfig.Redirect
-	}
 	ts, err := rawConfig.(Buildable).Build()
 	if err != nil {
 		return nil, err
@@ -397,7 +383,6 @@ type Config struct {
 
 	LogConfig       *LogConfig             `json:"log"`
 	RouterConfig    *RouterConfig          `json:"routing"`
-	DNSConfig       *DNSConfig             `json:"dns"`
 	InboundConfigs  []InboundDetourConfig  `json:"inbounds"`
 	OutboundConfigs []OutboundDetourConfig `json:"outbounds"`
 	Transport       *TransportConfig       `json:"transport"`
@@ -406,7 +391,6 @@ type Config struct {
 	Metrics         *MetricsConfig         `json:"metrics"`
 	Stats           *StatsConfig           `json:"stats"`
 	Reverse         *ReverseConfig         `json:"reverse"`
-	FakeDNS         *FakeDNSConfig         `json:"fakeDns"`
 	Observatory     *ObservatoryConfig     `json:"observatory"`
 }
 
@@ -442,9 +426,6 @@ func (c *Config) Override(o *Config, fn string) {
 	if o.RouterConfig != nil {
 		c.RouterConfig = o.RouterConfig
 	}
-	if o.DNSConfig != nil {
-		c.DNSConfig = o.DNSConfig
-	}
 	if o.Transport != nil {
 		c.Transport = o.Transport
 	}
@@ -463,11 +444,6 @@ func (c *Config) Override(o *Config, fn string) {
 	if o.Reverse != nil {
 		c.Reverse = o.Reverse
 	}
-
-	if o.FakeDNS != nil {
-		c.FakeDNS = o.FakeDNS
-	}
-
 	if o.Observatory != nil {
 		c.Observatory = o.Observatory
 	}
@@ -596,15 +572,6 @@ func (c *Config) Build() (*core.Config, error) {
 		}
 		config.App = append(config.App, serial.ToTypedMessage(routerConfig))
 	}
-
-	if c.DNSConfig != nil {
-		dnsApp, err := c.DNSConfig.Build()
-		if err != nil {
-			return nil, newError("failed to parse DNS config").Base(err)
-		}
-		config.App = append(config.App, serial.ToTypedMessage(dnsApp))
-	}
-
 	if c.Policy != nil {
 		pc, err := c.Policy.Build()
 		if err != nil {
@@ -620,15 +587,6 @@ func (c *Config) Build() (*core.Config, error) {
 		}
 		config.App = append(config.App, serial.ToTypedMessage(r))
 	}
-
-	if c.FakeDNS != nil {
-		r, err := c.FakeDNS.Build()
-		if err != nil {
-			return nil, err
-		}
-		config.App = append([]*serial.TypedMessage{serial.ToTypedMessage(r)}, config.App...)
-	}
-
 	if c.Observatory != nil {
 		r, err := c.Observatory.Build()
 		if err != nil {

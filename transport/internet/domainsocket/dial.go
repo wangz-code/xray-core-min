@@ -9,7 +9,6 @@ import (
 	"github.com/xtls/xray-core/common"
 	"github.com/xtls/xray-core/common/net"
 	"github.com/xtls/xray-core/transport/internet"
-	"github.com/xtls/xray-core/transport/internet/reality"
 	"github.com/xtls/xray-core/transport/internet/stat"
 	"github.com/xtls/xray-core/transport/internet/tls"
 )
@@ -28,8 +27,6 @@ func Dial(ctx context.Context, dest net.Destination, streamSettings *internet.Me
 
 	if config := tls.ConfigFromStreamSettings(streamSettings); config != nil {
 		return tls.Client(conn, config.GetTLSConfig(tls.WithDestination(dest))), nil
-	} else if config := reality.ConfigFromStreamSettings(streamSettings); config != nil {
-		return reality.UClient(conn, config, ctx, dest)
 	}
 
 	return conn, nil
