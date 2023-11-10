@@ -505,17 +505,9 @@ func applyTransportConfig(s *StreamConfig, t *TransportConfig) {
 	if s.TCPSettings == nil {
 		s.TCPSettings = t.TCPConfig
 	}
-	if s.KCPSettings == nil {
-		s.KCPSettings = t.KCPConfig
-	}
-	if s.WSSettings == nil {
-		s.WSSettings = t.WSConfig
-	}
+
 	if s.HTTPSettings == nil {
 		s.HTTPSettings = t.HTTPConfig
-	}
-	if s.DSSettings == nil {
-		s.DSSettings = t.DSConfig
 	}
 }
 

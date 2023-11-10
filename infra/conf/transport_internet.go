@@ -4,22 +4,15 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"math"
-	"net/url"
-	"strconv"
 	"strings"
 
 	"github.com/xtls/xray-core/common/platform/filesystem"
-	"github.com/xtls/xray-core/common/protocol"
 	"github.com/xtls/xray-core/common/serial"
 	"github.com/xtls/xray-core/transport/internet"
-	"github.com/xtls/xray-core/transport/internet/domainsocket"
 	httpheader "github.com/xtls/xray-core/transport/internet/headers/http"
 	"github.com/xtls/xray-core/transport/internet/http"
-	"github.com/xtls/xray-core/transport/internet/kcp"
-	"github.com/xtls/xray-core/transport/internet/quic"
 	"github.com/xtls/xray-core/transport/internet/tcp"
 	"github.com/xtls/xray-core/transport/internet/tls"
-	"github.com/xtls/xray-core/transport/internet/websocket"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -40,80 +33,6 @@ var (
 	}, "type", "")
 )
 
-type KCPConfig struct {
-	Mtu             *uint32         `json:"mtu"`
-	Tti             *uint32         `json:"tti"`
-	UpCap           *uint32         `json:"uplinkCapacity"`
-	DownCap         *uint32         `json:"downlinkCapacity"`
-	Congestion      *bool           `json:"congestion"`
-	ReadBufferSize  *uint32         `json:"readBufferSize"`
-	WriteBufferSize *uint32         `json:"writeBufferSize"`
-	HeaderConfig    json.RawMessage `json:"header"`
-	Seed            *string         `json:"seed"`
-}
-
-// Build implements Buildable.
-func (c *KCPConfig) Build() (proto.Message, error) {
-	config := new(kcp.Config)
-
-	if c.Mtu != nil {
-		mtu := *c.Mtu
-		if mtu < 576 || mtu > 1460 {
-			return nil, newError("invalid mKCP MTU size: ", mtu).AtError()
-		}
-		config.Mtu = &kcp.MTU{Value: mtu}
-	}
-	if c.Tti != nil {
-		tti := *c.Tti
-		if tti < 10 || tti > 100 {
-			return nil, newError("invalid mKCP TTI: ", tti).AtError()
-		}
-		config.Tti = &kcp.TTI{Value: tti}
-	}
-	if c.UpCap != nil {
-		config.UplinkCapacity = &kcp.UplinkCapacity{Value: *c.UpCap}
-	}
-	if c.DownCap != nil {
-		config.DownlinkCapacity = &kcp.DownlinkCapacity{Value: *c.DownCap}
-	}
-	if c.Congestion != nil {
-		config.Congestion = *c.Congestion
-	}
-	if c.ReadBufferSize != nil {
-		size := *c.ReadBufferSize
-		if size > 0 {
-			config.ReadBuffer = &kcp.ReadBuffer{Size: size * 1024 * 1024}
-		} else {
-			config.ReadBuffer = &kcp.ReadBuffer{Size: 512 * 1024}
-		}
-	}
-	if c.WriteBufferSize != nil {
-		size := *c.WriteBufferSize
-		if size > 0 {
-			config.WriteBuffer = &kcp.WriteBuffer{Size: size * 1024 * 1024}
-		} else {
-			config.WriteBuffer = &kcp.WriteBuffer{Size: 512 * 1024}
-		}
-	}
-	if len(c.HeaderConfig) > 0 {
-		headerConfig, _, err := kcpHeaderLoader.Load(c.HeaderConfig)
-		if err != nil {
-			return nil, newError("invalid mKCP header config.").Base(err).AtError()
-		}
-		ts, err := headerConfig.(Buildable).Build()
-		if err != nil {
-			return nil, newError("invalid mKCP header config").Base(err).AtError()
-		}
-		config.HeaderConfig = serial.ToTypedMessage(ts)
-	}
-
-	if c.Seed != nil {
-		config.Seed = &kcp.EncryptionSeed{Seed: *c.Seed}
-	}
-
-	return config, nil
-}
-
 type TCPConfig struct {
 	HeaderConfig        json.RawMessage `json:"header"`
 	AcceptProxyProtocol bool            `json:"acceptProxyProtocol"`
@@ -132,43 +51,6 @@ func (c *TCPConfig) Build() (proto.Message, error) {
 			return nil, newError("invalid TCP header config").Base(err).AtError()
 		}
 		config.HeaderSettings = serial.ToTypedMessage(ts)
-	}
-	if c.AcceptProxyProtocol {
-		config.AcceptProxyProtocol = c.AcceptProxyProtocol
-	}
-	return config, nil
-}
-
-type WebSocketConfig struct {
-	Path                string            `json:"path"`
-	Headers             map[string]string `json:"headers"`
-	AcceptProxyProtocol bool              `json:"acceptProxyProtocol"`
-}
-
-// Build implements Buildable.
-func (c *WebSocketConfig) Build() (proto.Message, error) {
-	path := c.Path
-	header := make([]*websocket.Header, 0, 32)
-	for key, value := range c.Headers {
-		header = append(header, &websocket.Header{
-			Key:   key,
-			Value: value,
-		})
-	}
-	var ed uint32
-	if u, err := url.Parse(path); err == nil {
-		if q := u.Query(); q.Get("ed") != "" {
-			Ed, _ := strconv.Atoi(q.Get("ed"))
-			ed = uint32(Ed)
-			q.Del("ed")
-			u.RawQuery = q.Encode()
-			path = u.String()
-		}
-	}
-	config := &websocket.Config{
-		Path:   path,
-		Header: header,
-		Ed:     ed,
 	}
 	if c.AcceptProxyProtocol {
 		config.AcceptProxyProtocol = c.AcceptProxyProtocol
@@ -219,62 +101,6 @@ func (c *HTTPConfig) Build() (proto.Message, error) {
 		}
 	}
 	return config, nil
-}
-
-type QUICConfig struct {
-	Header   json.RawMessage `json:"header"`
-	Security string          `json:"security"`
-	Key      string          `json:"key"`
-}
-
-// Build implements Buildable.
-func (c *QUICConfig) Build() (proto.Message, error) {
-	config := &quic.Config{
-		Key: c.Key,
-	}
-
-	if len(c.Header) > 0 {
-		headerConfig, _, err := kcpHeaderLoader.Load(c.Header)
-		if err != nil {
-			return nil, newError("invalid QUIC header config.").Base(err).AtError()
-		}
-		ts, err := headerConfig.(Buildable).Build()
-		if err != nil {
-			return nil, newError("invalid QUIC header config").Base(err).AtError()
-		}
-		config.Header = serial.ToTypedMessage(ts)
-	}
-
-	var st protocol.SecurityType
-	switch strings.ToLower(c.Security) {
-	case "aes-128-gcm":
-		st = protocol.SecurityType_AES128_GCM
-	case "chacha20-poly1305":
-		st = protocol.SecurityType_CHACHA20_POLY1305
-	default:
-		st = protocol.SecurityType_NONE
-	}
-
-	config.Security = &protocol.SecurityConfig{
-		Type: st,
-	}
-
-	return config, nil
-}
-
-type DomainSocketConfig struct {
-	Path     string `json:"path"`
-	Abstract bool   `json:"abstract"`
-	Padding  bool   `json:"padding"`
-}
-
-// Build implements Buildable.
-func (c *DomainSocketConfig) Build() (proto.Message, error) {
-	return &domainsocket.Config{
-		Path:     c.Path,
-		Abstract: c.Abstract,
-		Padding:  c.Padding,
-	}, nil
 }
 
 func readFileOrString(f string, s []string) ([]byte, error) {
@@ -511,18 +337,12 @@ func (c *SocketConfig) Build() (*internet.SocketConfig, error) {
 }
 
 type StreamConfig struct {
-	Network        *TransportProtocol  `json:"network"`
-	Security       string              `json:"security"`
-	TLSSettings    *TLSConfig          `json:"tlsSettings"`
-	TCPSettings    *TCPConfig          `json:"tcpSettings"`
-	KCPSettings    *KCPConfig          `json:"kcpSettings"`
-	WSSettings     *WebSocketConfig    `json:"wsSettings"`
-	HTTPSettings   *HTTPConfig         `json:"httpSettings"`
-	DSSettings     *DomainSocketConfig `json:"dsSettings"`
-	QUICSettings   *QUICConfig         `json:"quicSettings"`
-	SocketSettings *SocketConfig       `json:"sockopt"`
-	GRPCConfig     *GRPCConfig         `json:"grpcSettings"`
-	GUNConfig      *GRPCConfig         `json:"gunSettings"`
+	Network        *TransportProtocol `json:"network"`
+	Security       string             `json:"security"`
+	TLSSettings    *TLSConfig         `json:"tlsSettings"`
+	TCPSettings    *TCPConfig         `json:"tcpSettings"`
+	HTTPSettings   *HTTPConfig        `json:"httpSettings"`
+	SocketSettings *SocketConfig      `json:"sockopt"`
 }
 
 // Build implements Buildable.
@@ -566,26 +386,7 @@ func (c *StreamConfig) Build() (*internet.StreamConfig, error) {
 			Settings:     serial.ToTypedMessage(ts),
 		})
 	}
-	if c.KCPSettings != nil {
-		ts, err := c.KCPSettings.Build()
-		if err != nil {
-			return nil, newError("Failed to build mKCP config.").Base(err)
-		}
-		config.TransportSettings = append(config.TransportSettings, &internet.TransportConfig{
-			ProtocolName: "mkcp",
-			Settings:     serial.ToTypedMessage(ts),
-		})
-	}
-	if c.WSSettings != nil {
-		ts, err := c.WSSettings.Build()
-		if err != nil {
-			return nil, newError("Failed to build WebSocket config.").Base(err)
-		}
-		config.TransportSettings = append(config.TransportSettings, &internet.TransportConfig{
-			ProtocolName: "websocket",
-			Settings:     serial.ToTypedMessage(ts),
-		})
-	}
+
 	if c.HTTPSettings != nil {
 		ts, err := c.HTTPSettings.Build()
 		if err != nil {
@@ -594,39 +395,6 @@ func (c *StreamConfig) Build() (*internet.StreamConfig, error) {
 		config.TransportSettings = append(config.TransportSettings, &internet.TransportConfig{
 			ProtocolName: "http",
 			Settings:     serial.ToTypedMessage(ts),
-		})
-	}
-	if c.DSSettings != nil {
-		ds, err := c.DSSettings.Build()
-		if err != nil {
-			return nil, newError("Failed to build DomainSocket config.").Base(err)
-		}
-		config.TransportSettings = append(config.TransportSettings, &internet.TransportConfig{
-			ProtocolName: "domainsocket",
-			Settings:     serial.ToTypedMessage(ds),
-		})
-	}
-	if c.QUICSettings != nil {
-		qs, err := c.QUICSettings.Build()
-		if err != nil {
-			return nil, newError("Failed to build QUIC config").Base(err)
-		}
-		config.TransportSettings = append(config.TransportSettings, &internet.TransportConfig{
-			ProtocolName: "quic",
-			Settings:     serial.ToTypedMessage(qs),
-		})
-	}
-	if c.GRPCConfig == nil {
-		c.GRPCConfig = c.GUNConfig
-	}
-	if c.GRPCConfig != nil {
-		gs, err := c.GRPCConfig.Build()
-		if err != nil {
-			return nil, newError("Failed to build gRPC config.").Base(err)
-		}
-		config.TransportSettings = append(config.TransportSettings, &internet.TransportConfig{
-			ProtocolName: "grpc",
-			Settings:     serial.ToTypedMessage(gs),
 		})
 	}
 	if c.SocketSettings != nil {
