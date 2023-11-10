@@ -378,9 +378,9 @@ type Config struct {
 	InboundConfigs  []InboundDetourConfig  `json:"inbounds"`
 	OutboundConfigs []OutboundDetourConfig `json:"outbounds"`
 	Transport       *TransportConfig       `json:"transport"`
-	Policy          *PolicyConfig          `json:"policy"`
-	API             *APIConfig             `json:"api"`
-	Observatory     *ObservatoryConfig     `json:"observatory"`
+	// Policy          *PolicyConfig          `json:"policy"`
+	API         *APIConfig         `json:"api"`
+	Observatory *ObservatoryConfig `json:"observatory"`
 }
 
 func (c *Config) findInboundTag(tag string) int {
@@ -417,9 +417,6 @@ func (c *Config) Override(o *Config, fn string) {
 	}
 	if o.Transport != nil {
 		c.Transport = o.Transport
-	}
-	if o.Policy != nil {
-		c.Policy = o.Policy
 	}
 	if o.API != nil {
 		c.API = o.API
@@ -529,13 +526,6 @@ func (c *Config) Build() (*core.Config, error) {
 			return nil, err
 		}
 		config.App = append(config.App, serial.ToTypedMessage(routerConfig))
-	}
-	if c.Policy != nil {
-		pc, err := c.Policy.Build()
-		if err != nil {
-			return nil, err
-		}
-		config.App = append(config.App, serial.ToTypedMessage(pc))
 	}
 
 	if c.Observatory != nil {
