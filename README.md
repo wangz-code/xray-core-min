@@ -32,9 +32,19 @@ go build -o xray -trimpath -ldflags "-s -w -buildid=" main.go
 真机好像只有 softfloat 这种才能运行, mac m1 下无法交叉编译, 只能在 linux 上才能编译,测试 centos8 可以 build
 
 ```bash
-CGO_ENABLED=0 GOARCH=mipsle GOMIPS=softfloat go build -o xray -trimpath -ldflags "-s -w -buildid=" ./main
+CGO_ENABLED=0 GOARCH=mipsle GOMIPS=softfloat go build -o xray -trimpath -ldflags "-s -w -buildid=" main.go
 
 ```
+
+### 放两张对比图
+
+#### 官方
+
+[![pi8AeTe.png](https://z1.ax1x.com/2023/11/10/pi8AeTe.png)](https://imgse.com/i/pi8AeTe)
+---
+#### 删减后的
+
+[![pi8AuYd.png](https://z1.ax1x.com/2023/11/10/pi8AuYd.png)](https://imgse.com/i/pi8AuYd)
 
 ### 测试能够运行的 config.json
 
