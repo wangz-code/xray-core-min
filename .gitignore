@@ -27,5 +27,4 @@ errorgen
 *.dat
 .vscode
 config.json
-tmp/
-tmp/main
+tmp
