@@ -35,7 +35,7 @@ import (
 	_ "github.com/xtls/xray-core/proxy/vless/inbound"
 	_ "github.com/xtls/xray-core/proxy/vless/outbound"
 
-	_ "github.com/xtls/xray-core/transport/internet/http"
+	// _ "github.com/xtls/xray-core/transport/internet/http"
 
 	_ "github.com/xtls/xray-core/transport/internet/tcp"
 	_ "github.com/xtls/xray-core/transport/internet/tls"
