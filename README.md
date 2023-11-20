@@ -9,8 +9,6 @@ https://github.com/XTLS/Xray-core/issues/1880#issuecomment-1491614281 看作者�
 main.go 放倒外面其他的只要 config.json 中没有使用的全都删除,写的慢但是删的是真不慢, blackhole 和 DNS 我都删了, 应该还能再删, 这里有些文件夹我不确定有什么用,官方文档也没说明 难受
 
 仅保留:
-
--   socks
 -   http
 -   freedom
 -   vless
