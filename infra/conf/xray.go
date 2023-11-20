@@ -377,7 +377,6 @@ type Config struct {
 	OutboundConfigs []OutboundDetourConfig `json:"outbounds"`
 	Transport       *TransportConfig       `json:"transport"`
 	// Policy          *PolicyConfig          `json:"policy"`
-	API         *APIConfig         `json:"api"`
 	Observatory *ObservatoryConfig `json:"observatory"`
 }
 
@@ -415,9 +414,6 @@ func (c *Config) Override(o *Config, fn string) {
 	}
 	if o.Transport != nil {
 		c.Transport = o.Transport
-	}
-	if o.API != nil {
-		c.API = o.API
 	}
 	if o.Observatory != nil {
 		c.Observatory = o.Observatory
@@ -495,14 +491,6 @@ func (c *Config) Build() (*core.Config, error) {
 			serial.ToTypedMessage(&proxyman.InboundConfig{}),
 			serial.ToTypedMessage(&proxyman.OutboundConfig{}),
 		},
-	}
-
-	if c.API != nil {
-		apiConf, err := c.API.Build()
-		if err != nil {
-			return nil, err
-		}
-		config.App = append(config.App, serial.ToTypedMessage(apiConf))
 	}
 
 	var logConfMsg *serial.TypedMessage

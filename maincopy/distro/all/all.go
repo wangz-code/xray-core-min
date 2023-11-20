@@ -8,15 +8,6 @@ import (
 	_ "github.com/xtls/xray-core/app/proxyman/inbound"
 	_ "github.com/xtls/xray-core/app/proxyman/outbound"
 
-	// Default commander and all its services. This is an optional feature.
-	_ "github.com/xtls/xray-core/app/commander"
-	_ "github.com/xtls/xray-core/app/log/command"
-
-	_ "github.com/xtls/xray-core/app/proxyman/command"
-
-	// Developer preview services
-	_ "github.com/xtls/xray-core/app/observatory/command"
-
 	// Other optional features.
 	_ "github.com/xtls/xray-core/app/log"
 
