@@ -7,10 +7,8 @@ import (
 
 	"github.com/xtls/xray-core/common"
 	"github.com/xtls/xray-core/core"
-	"github.com/xtls/xray-core/features/dns"
 	"github.com/xtls/xray-core/features/outbound"
 	"github.com/xtls/xray-core/features/routing"
-	routing_dns "github.com/xtls/xray-core/features/routing/dns"
 )
 
 // Router is an implementation of routing.Router.
@@ -18,7 +16,6 @@ type Router struct {
 	domainStrategy Config_DomainStrategy
 	rules          []*Rule
 	balancers      map[string]*Balancer
-	dns            dns.Client
 }
 
 // Route is an implementation of routing.Route.
@@ -29,9 +26,8 @@ type Route struct {
 }
 
 // Init initializes the Router.
-func (r *Router) Init(ctx context.Context, config *Config, d dns.Client, ohm outbound.Manager) error {
+func (r *Router) Init(ctx context.Context, config *Config, ohm outbound.Manager) error {
 	r.domainStrategy = config.DomainStrategy
-	r.dns = d
 
 	r.balancers = make(map[string]*Balancer, len(config.BalancingRule))
 	for _, rule := range config.BalancingRule {
@@ -86,10 +82,6 @@ func (r *Router) pickRouteInternal(ctx routing.Context) (*Rule, routing.Context,
 	// this prevents cycle resolving dead loop
 	skipDNSResolve := ctx.GetSkipDNSResolve()
 
-	if r.domainStrategy == Config_IpOnDemand && !skipDNSResolve {
-		ctx = routing_dns.ContextWithDNSClient(ctx, r.dns)
-	}
-
 	for _, rule := range r.rules {
 		if rule.Apply(ctx) {
 			return rule, ctx, nil
@@ -99,8 +91,6 @@ func (r *Router) pickRouteInternal(ctx routing.Context) (*Rule, routing.Context,
 	if r.domainStrategy != Config_IpIfNonMatch || len(ctx.GetTargetDomain()) == 0 || skipDNSResolve {
 		return nil, ctx, common.ErrNoClue
 	}
-
-	ctx = routing_dns.ContextWithDNSClient(ctx, r.dns)
 
 	// Try applying rules again if we have IPs.
 	for _, rule := range r.rules {
@@ -140,8 +130,8 @@ func (r *Route) GetOutboundTag() string {
 func init() {
 	common.Must(common.RegisterConfig((*Config)(nil), func(ctx context.Context, config interface{}) (interface{}, error) {
 		r := new(Router)
-		if err := core.RequireFeatures(ctx, func(d dns.Client, ohm outbound.Manager) error {
-			return r.Init(ctx, config.(*Config), d, ohm)
+		if err := core.RequireFeatures(ctx, func(ohm outbound.Manager) error {
+			return r.Init(ctx, config.(*Config), ohm)
 		}); err != nil {
 			return nil, err
 		}

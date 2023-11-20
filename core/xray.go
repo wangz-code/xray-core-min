@@ -9,8 +9,6 @@ import (
 	"github.com/xtls/xray-core/common/platform"
 	"github.com/xtls/xray-core/common/serial"
 	"github.com/xtls/xray-core/features"
-	"github.com/xtls/xray-core/features/dns"
-	"github.com/xtls/xray-core/features/dns/localdns"
 	"github.com/xtls/xray-core/features/inbound"
 	"github.com/xtls/xray-core/features/outbound"
 	"github.com/xtls/xray-core/features/policy"
@@ -227,7 +225,6 @@ func initInstanceWithConfig(config *Config, server *Instance) (bool, error) {
 		Type     interface{}
 		Instance features.Feature
 	}{
-		{dns.ClientType(), localdns.New()},
 		{policy.ManagerType(), policy.DefaultManager{}},
 		{routing.RouterType(), routing.DefaultRouter{}},
 		{stats.ManagerType(), stats.NoopManager{}},
@@ -242,7 +239,6 @@ func initInstanceWithConfig(config *Config, server *Instance) (bool, error) {
 	}
 
 	internet.InitSystemDialer(
-		server.GetFeature(dns.ClientType()).(dns.Client),
 		func() outbound.Manager {
 			obm, _ := server.GetFeature(outbound.ManagerType()).(outbound.Manager)
 			return obm
