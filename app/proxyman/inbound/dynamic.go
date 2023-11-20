@@ -149,25 +149,6 @@ func (h *DynamicInboundHandler) refresh() error {
 			workers = append(workers, worker)
 		}
 
-		if net.HasNetwork(nl, net.Network_UDP) {
-			worker := &udpWorker{
-				tag:             h.tag,
-				proxy:           p,
-				address:         address,
-				port:            port,
-				dispatcher:      h.mux,
-				sniffingConfig:  h.receiverConfig.GetEffectiveSniffingSettings(),
-				uplinkCounter:   uplinkCounter,
-				downlinkCounter: downlinkCounter,
-				stream:          h.streamSettings,
-				ctx:             h.ctx,
-			}
-			if err := worker.Start(); err != nil {
-				newError("failed to create UDP worker").Base(err).AtWarning().WriteToLog()
-				continue
-			}
-			workers = append(workers, worker)
-		}
 	}
 
 	h.workerMutex.Lock()

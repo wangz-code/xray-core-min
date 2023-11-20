@@ -6,7 +6,6 @@ import (
 	"context"
 	"crypto/rand"
 	"io"
-	"log"
 	"math/big"
 	"time"
 
@@ -187,8 +186,6 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, dialer inte
 		defer timer.SetTimeout(plcy.Timeouts.DownlinkOnly)
 		var writer buf.Writer
 		if destination.Network == net.Network_TCP {
-			log.Println("TCP", h.config.Fragment)
-
 			if h.config.Fragment != nil {
 				newError("FRAGMENT", h.config.Fragment.PacketsFrom, h.config.Fragment.PacketsTo, h.config.Fragment.LengthMin, h.config.Fragment.LengthMax,
 					h.config.Fragment.IntervalMin, h.config.Fragment.IntervalMax).AtDebug().WriteToLog(session.ExportIDToError(ctx))

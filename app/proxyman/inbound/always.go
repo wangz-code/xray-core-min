@@ -127,21 +127,6 @@ func NewAlwaysOnInboundHandler(ctx context.Context, tag string, receiverConfig *
 					h.workers = append(h.workers, worker)
 				}
 
-				if net.HasNetwork(nl, net.Network_UDP) {
-					worker := &udpWorker{
-						tag:             tag,
-						proxy:           p,
-						address:         address,
-						port:            net.Port(port),
-						dispatcher:      h.mux,
-						sniffingConfig:  receiverConfig.GetEffectiveSniffingSettings(),
-						uplinkCounter:   uplinkCounter,
-						downlinkCounter: downlinkCounter,
-						stream:          mss,
-						ctx:             ctx,
-					}
-					h.workers = append(h.workers, worker)
-				}
 			}
 		}
 	}

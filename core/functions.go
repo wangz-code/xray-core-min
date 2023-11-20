@@ -8,7 +8,6 @@ import (
 	"github.com/xtls/xray-core/common/net"
 	"github.com/xtls/xray-core/common/net/cnc"
 	"github.com/xtls/xray-core/features/routing"
-	"github.com/xtls/xray-core/transport/internet/udp"
 )
 
 // CreateObject creates a new object based on the given Xray instance and config. The Xray instance may be nil.
@@ -64,20 +63,4 @@ func Dial(ctx context.Context, v *Instance, dest net.Destination) (net.Conn, err
 		readerOpt = cnc.ConnectionOutputMultiUDP(r.Reader)
 	}
 	return cnc.NewConnection(cnc.ConnectionInputMulti(r.Writer), readerOpt), nil
-}
-
-// DialUDP provides a way to exchange UDP packets through Xray instance to remote servers.
-// Since it is under a proxy context, the LocalAddr() in returned PacketConn will not show the real address.
-//
-// TODO: SetDeadline() / SetReadDeadline() / SetWriteDeadline() are not implemented.
-//
-// xray:api:beta
-func DialUDP(ctx context.Context, v *Instance) (net.PacketConn, error) {
-	ctx = toContext(ctx, v)
-
-	dispatcher := v.GetFeature(routing.DispatcherType())
-	if dispatcher == nil {
-		return nil, newError("routing.Dispatcher is not registered in Xray core")
-	}
-	return udp.DialDispatcher(ctx, dispatcher.(routing.Dispatcher))
 }
