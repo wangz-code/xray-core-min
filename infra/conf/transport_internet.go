@@ -196,18 +196,8 @@ func (p TransportProtocol) Build() (string, error) {
 	switch strings.ToLower(string(p)) {
 	case "tcp":
 		return "tcp", nil
-	case "kcp", "mkcp":
-		return "mkcp", nil
-	case "ws", "websocket":
-		return "websocket", nil
 	case "h2", "http":
 		return "http", nil
-	case "ds", "domainsocket":
-		return "domainsocket", nil
-	case "quic":
-		return "quic", nil
-	case "grpc", "gun":
-		return "grpc", nil
 	default:
 		return "", newError("Config: unknown transport protocol: ", p)
 	}
