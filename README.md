@@ -34,6 +34,16 @@ CGO_ENABLED=0 GOARCH=mipsle GOMIPS=softfloat go build -o xray -trimpath -ldflags
 
 ```
 
+
+### openwrt armsr/armv8    查看架构 uname -m   go tool dist list      
+ 
+```bash
+CGO_ENABLED=0 GOOS=linux GOARCH=arm64  go build -o xray -trimpath -ldflags "-s -w -buildid=" main.go
+
+```
+
+
+
 ### 放两张对比图  1.8.4 版本
 
 ### 官方 build 27M upx 之后 12M
