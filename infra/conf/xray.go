@@ -434,14 +434,6 @@ func (c *Config) Build() (*core.Config, error) {
 		config.App = append(config.App, serial.ToTypedMessage(routerConfig))
 	}
 
-	if c.Observatory != nil {
-		r, err := c.Observatory.Build()
-		if err != nil {
-			return nil, err
-		}
-		config.App = append(config.App, serial.ToTypedMessage(r))
-	}
-
 	var inbounds []InboundDetourConfig
 	inbounds = append(inbounds, c.InboundConfigs...)
 	rawInboundConfig := inbounds[0]
