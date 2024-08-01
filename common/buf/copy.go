@@ -6,7 +6,6 @@ import (
 
 	"github.com/xtls/xray-core/common/errors"
 	"github.com/xtls/xray-core/common/signal"
-	"github.com/xtls/xray-core/features/stats"
 )
 
 type dataHandler func(MultiBuffer)
@@ -37,17 +36,6 @@ func CountSize(sc *SizeCounter) CopyOption {
 	return func(handler *copyHandler) {
 		handler.onData = append(handler.onData, func(b MultiBuffer) {
 			sc.Size += int64(b.Len())
-		})
-	}
-}
-
-// AddToStatCounter a CopyOption add to stat counter
-func AddToStatCounter(sc stats.Counter) CopyOption {
-	return func(handler *copyHandler) {
-		handler.onData = append(handler.onData, func(b MultiBuffer) {
-			if sc != nil {
-				sc.Add(int64(b.Len()))
-			}
 		})
 	}
 }

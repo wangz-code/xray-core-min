@@ -9,7 +9,6 @@ import (
 	"github.com/xtls/xray-core/common/serial"
 	"github.com/xtls/xray-core/common/session"
 	"github.com/xtls/xray-core/features/routing"
-	"github.com/xtls/xray-core/features/stats"
 	"github.com/xtls/xray-core/proxy"
 	"github.com/xtls/xray-core/transport/internet"
 	"github.com/xtls/xray-core/transport/internet/stat"
@@ -24,16 +23,14 @@ type worker interface {
 }
 
 type tcpWorker struct {
-	address         net.Address
-	port            net.Port
-	proxy           proxy.Inbound
-	stream          *internet.MemoryStreamConfig
-	recvOrigDest    bool
-	tag             string
-	dispatcher      routing.Dispatcher
-	sniffingConfig  *proxyman.SniffingConfig
-	uplinkCounter   stats.Counter
-	downlinkCounter stats.Counter
+	address        net.Address
+	port           net.Port
+	proxy          proxy.Inbound
+	stream         *internet.MemoryStreamConfig
+	recvOrigDest   bool
+	tag            string
+	dispatcher     routing.Dispatcher
+	sniffingConfig *proxyman.SniffingConfig
 
 	hub internet.Listener
 
@@ -72,12 +69,8 @@ func (w *tcpWorker) callback(conn stat.Connection) {
 	}
 	ctx = session.ContextWithOutbound(ctx, outbound)
 
-	if w.uplinkCounter != nil || w.downlinkCounter != nil {
-		conn = &stat.CounterConnection{
-			Connection:   conn,
-			ReadCounter:  w.uplinkCounter,
-			WriteCounter: w.downlinkCounter,
-		}
+	conn = &stat.CounterConnection{
+		Connection: conn,
 	}
 	ctx = session.ContextWithInbound(ctx, &session.Inbound{
 		Source:  net.DestinationFromAddr(conn.RemoteAddr()),
@@ -141,14 +134,12 @@ func (w *tcpWorker) Port() net.Port {
 }
 
 type dsWorker struct {
-	address         net.Address
-	proxy           proxy.Inbound
-	stream          *internet.MemoryStreamConfig
-	tag             string
-	dispatcher      routing.Dispatcher
-	sniffingConfig  *proxyman.SniffingConfig
-	uplinkCounter   stats.Counter
-	downlinkCounter stats.Counter
+	address        net.Address
+	proxy          proxy.Inbound
+	stream         *internet.MemoryStreamConfig
+	tag            string
+	dispatcher     routing.Dispatcher
+	sniffingConfig *proxyman.SniffingConfig
 
 	hub internet.Listener
 
@@ -160,12 +151,8 @@ func (w *dsWorker) callback(conn stat.Connection) {
 	sid := session.NewID()
 	ctx = session.ContextWithID(ctx, sid)
 
-	if w.uplinkCounter != nil || w.downlinkCounter != nil {
-		conn = &stat.CounterConnection{
-			Connection:   conn,
-			ReadCounter:  w.uplinkCounter,
-			WriteCounter: w.downlinkCounter,
-		}
+	conn = &stat.CounterConnection{
+		Connection: conn,
 	}
 	ctx = session.ContextWithInbound(ctx, &session.Inbound{
 		Source:  net.DestinationFromAddr(conn.RemoteAddr()),

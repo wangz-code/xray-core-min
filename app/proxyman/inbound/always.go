@@ -9,37 +9,9 @@ import (
 	"github.com/xtls/xray-core/common/errors"
 	"github.com/xtls/xray-core/common/mux"
 	"github.com/xtls/xray-core/common/net"
-	"github.com/xtls/xray-core/core"
-	"github.com/xtls/xray-core/features/policy"
-	"github.com/xtls/xray-core/features/stats"
 	"github.com/xtls/xray-core/proxy"
 	"github.com/xtls/xray-core/transport/internet"
 )
-
-func getStatCounter(v *core.Instance, tag string) (stats.Counter, stats.Counter) {
-	var uplinkCounter stats.Counter
-	var downlinkCounter stats.Counter
-
-	policy := v.GetFeature(policy.ManagerType()).(policy.Manager)
-	if len(tag) > 0 && policy.ForSystem().Stats.InboundUplink {
-		statsManager := v.GetFeature(stats.ManagerType()).(stats.Manager)
-		name := "inbound>>>" + tag + ">>>traffic>>>uplink"
-		c, _ := stats.GetOrRegisterCounter(statsManager, name)
-		if c != nil {
-			uplinkCounter = c
-		}
-	}
-	if len(tag) > 0 && policy.ForSystem().Stats.InboundDownlink {
-		statsManager := v.GetFeature(stats.ManagerType()).(stats.Manager)
-		name := "inbound>>>" + tag + ">>>traffic>>>downlink"
-		c, _ := stats.GetOrRegisterCounter(statsManager, name)
-		if c != nil {
-			downlinkCounter = c
-		}
-	}
-
-	return uplinkCounter, downlinkCounter
-}
 
 type AlwaysOnInboundHandler struct {
 	proxy   proxy.Inbound
@@ -63,8 +35,6 @@ func NewAlwaysOnInboundHandler(ctx context.Context, tag string, receiverConfig *
 		mux:   mux.NewServer(ctx),
 		tag:   tag,
 	}
-
-	uplinkCounter, downlinkCounter := getStatCounter(core.MustFromContext(ctx), tag)
 
 	nl := p.Network()
 	pl := receiverConfig.PortList
@@ -92,15 +62,13 @@ func NewAlwaysOnInboundHandler(ctx context.Context, tag string, receiverConfig *
 			newError("creating unix domain socket worker on ", address).AtDebug().WriteToLog()
 
 			worker := &dsWorker{
-				address:         address,
-				proxy:           p,
-				stream:          mss,
-				tag:             tag,
-				dispatcher:      h.mux,
-				sniffingConfig:  receiverConfig.GetEffectiveSniffingSettings(),
-				uplinkCounter:   uplinkCounter,
-				downlinkCounter: downlinkCounter,
-				ctx:             ctx,
+				address:        address,
+				proxy:          p,
+				stream:         mss,
+				tag:            tag,
+				dispatcher:     h.mux,
+				sniffingConfig: receiverConfig.GetEffectiveSniffingSettings(),
+				ctx:            ctx,
 			}
 			h.workers = append(h.workers, worker)
 		}
@@ -112,17 +80,15 @@ func NewAlwaysOnInboundHandler(ctx context.Context, tag string, receiverConfig *
 					newError("creating stream worker on ", address, ":", port).AtDebug().WriteToLog()
 
 					worker := &tcpWorker{
-						address:         address,
-						port:            net.Port(port),
-						proxy:           p,
-						stream:          mss,
-						recvOrigDest:    receiverConfig.ReceiveOriginalDestination,
-						tag:             tag,
-						dispatcher:      h.mux,
-						sniffingConfig:  receiverConfig.GetEffectiveSniffingSettings(),
-						uplinkCounter:   uplinkCounter,
-						downlinkCounter: downlinkCounter,
-						ctx:             ctx,
+						address:        address,
+						port:           net.Port(port),
+						proxy:          p,
+						stream:         mss,
+						recvOrigDest:   receiverConfig.ReceiveOriginalDestination,
+						tag:            tag,
+						dispatcher:     h.mux,
+						sniffingConfig: receiverConfig.GetEffectiveSniffingSettings(),
+						ctx:            ctx,
 					}
 					h.workers = append(h.workers, worker)
 				}

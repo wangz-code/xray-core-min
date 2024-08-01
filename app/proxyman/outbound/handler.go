@@ -15,8 +15,6 @@ import (
 	"github.com/xtls/xray-core/common/session"
 	"github.com/xtls/xray-core/core"
 	"github.com/xtls/xray-core/features/outbound"
-	"github.com/xtls/xray-core/features/policy"
-	"github.com/xtls/xray-core/features/stats"
 	"github.com/xtls/xray-core/proxy"
 	"github.com/xtls/xray-core/transport"
 	"github.com/xtls/xray-core/transport/internet"
@@ -24,31 +22,6 @@ import (
 	"github.com/xtls/xray-core/transport/internet/tls"
 	"github.com/xtls/xray-core/transport/pipe"
 )
-
-func getStatCounter(v *core.Instance, tag string) (stats.Counter, stats.Counter) {
-	var uplinkCounter stats.Counter
-	var downlinkCounter stats.Counter
-
-	policy := v.GetFeature(policy.ManagerType()).(policy.Manager)
-	if len(tag) > 0 && policy.ForSystem().Stats.OutboundUplink {
-		statsManager := v.GetFeature(stats.ManagerType()).(stats.Manager)
-		name := "outbound>>>" + tag + ">>>traffic>>>uplink"
-		c, _ := stats.GetOrRegisterCounter(statsManager, name)
-		if c != nil {
-			uplinkCounter = c
-		}
-	}
-	if len(tag) > 0 && policy.ForSystem().Stats.OutboundDownlink {
-		statsManager := v.GetFeature(stats.ManagerType()).(stats.Manager)
-		name := "outbound>>>" + tag + ">>>traffic>>>downlink"
-		c, _ := stats.GetOrRegisterCounter(statsManager, name)
-		if c != nil {
-			downlinkCounter = c
-		}
-	}
-
-	return uplinkCounter, downlinkCounter
-}
 
 // Handler is an implements of outbound.Handler.
 type Handler struct {
@@ -60,19 +33,14 @@ type Handler struct {
 	mux             *mux.ClientManager
 	xudp            *mux.ClientManager
 	udp443          string
-	uplinkCounter   stats.Counter
-	downlinkCounter stats.Counter
 }
 
 // NewHandler creates a new Handler based on the given configuration.
 func NewHandler(ctx context.Context, config *core.OutboundHandlerConfig) (outbound.Handler, error) {
 	v := core.MustFromContext(ctx)
-	uplinkCounter, downlinkCounter := getStatCounter(v, config.Tag)
 	h := &Handler{
 		tag:             config.Tag,
 		outboundManager: v.GetFeature(outbound.ManagerType()).(outbound.Manager),
-		uplinkCounter:   uplinkCounter,
-		downlinkCounter: downlinkCounter,
 	}
 
 	if config.SenderSettings != nil {
@@ -283,13 +251,7 @@ func (h *Handler) Dial(ctx context.Context, dest net.Destination) (stat.Connecti
 }
 
 func (h *Handler) getStatCouterConnection(conn stat.Connection) stat.Connection {
-	if h.uplinkCounter != nil || h.downlinkCounter != nil {
-		return &stat.CounterConnection{
-			Connection:   conn,
-			ReadCounter:  h.downlinkCounter,
-			WriteCounter: h.uplinkCounter,
-		}
-	}
+
 	return conn
 }
 

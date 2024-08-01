@@ -12,14 +12,12 @@ import (
 	"github.com/xtls/xray-core/common/buf"
 	"github.com/xtls/xray-core/common/log"
 	"github.com/xtls/xray-core/common/net"
-	"github.com/xtls/xray-core/common/protocol"
 	"github.com/xtls/xray-core/common/session"
 	"github.com/xtls/xray-core/core"
 	"github.com/xtls/xray-core/features/outbound"
 	"github.com/xtls/xray-core/features/policy"
 	"github.com/xtls/xray-core/features/routing"
 	routing_session "github.com/xtls/xray-core/features/routing/session"
-	"github.com/xtls/xray-core/features/stats"
 	"github.com/xtls/xray-core/transport"
 	"github.com/xtls/xray-core/transport/pipe"
 )
@@ -90,17 +88,16 @@ type DefaultDispatcher struct {
 	ohm    outbound.Manager
 	router routing.Router
 	policy policy.Manager
-	stats  stats.Manager
 }
 
 func init() {
 	common.Must(common.RegisterConfig((*Config)(nil), func(ctx context.Context, config interface{}) (interface{}, error) {
 		d := new(DefaultDispatcher)
-		if err := core.RequireFeatures(ctx, func(om outbound.Manager, router routing.Router, pm policy.Manager, sm stats.Manager) error {
+		if err := core.RequireFeatures(ctx, func(om outbound.Manager, router routing.Router, pm policy.Manager) error {
 			core.RequireFeatures(ctx, func() {
 
 			})
-			return d.Init(config.(*Config), om, router, pm, sm)
+			return d.Init(config.(*Config), om, router, pm)
 		}); err != nil {
 			return nil, err
 		}
@@ -109,11 +106,10 @@ func init() {
 }
 
 // Init initializes DefaultDispatcher.
-func (d *DefaultDispatcher) Init(config *Config, om outbound.Manager, router routing.Router, pm policy.Manager, sm stats.Manager) error {
+func (d *DefaultDispatcher) Init(config *Config, om outbound.Manager, router routing.Router, pm policy.Manager) error {
 	d.ohm = om
 	d.router = router
 	d.policy = pm
-	d.stats = sm
 	return nil
 }
 
@@ -144,35 +140,6 @@ func (d *DefaultDispatcher) getLink(ctx context.Context) (*transport.Link, *tran
 		Reader: uplinkReader,
 		Writer: downlinkWriter,
 	}
-
-	sessionInbound := session.InboundFromContext(ctx)
-	var user *protocol.MemoryUser
-	if sessionInbound != nil {
-		user = sessionInbound.User
-	}
-
-	if user != nil && len(user.Email) > 0 {
-		p := d.policy.ForLevel(user.Level)
-		if p.Stats.UserUplink {
-			name := "user>>>" + user.Email + ">>>traffic>>>uplink"
-			if c, _ := stats.GetOrRegisterCounter(d.stats, name); c != nil {
-				inboundLink.Writer = &SizeStatWriter{
-					Counter: c,
-					Writer:  inboundLink.Writer,
-				}
-			}
-		}
-		if p.Stats.UserDownlink {
-			name := "user>>>" + user.Email + ">>>traffic>>>downlink"
-			if c, _ := stats.GetOrRegisterCounter(d.stats, name); c != nil {
-				outboundLink.Writer = &SizeStatWriter{
-					Counter: c,
-					Writer:  outboundLink.Writer,
-				}
-			}
-		}
-	}
-
 	return inboundLink, outboundLink
 }
 

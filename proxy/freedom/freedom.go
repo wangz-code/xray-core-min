@@ -19,7 +19,6 @@ import (
 	"github.com/xtls/xray-core/common/task"
 	"github.com/xtls/xray-core/core"
 	"github.com/xtls/xray-core/features/policy"
-	"github.com/xtls/xray-core/features/stats"
 	"github.com/xtls/xray-core/proxy"
 	"github.com/xtls/xray-core/transport"
 	"github.com/xtls/xray-core/transport/internet"
@@ -210,14 +209,10 @@ func NewPacketReader(conn net.Conn, UDPOverride net.Destination) buf.Reader {
 	if ok {
 		iConn = statConn.Connection
 	}
-	var counter stats.Counter
-	if statConn != nil {
-		counter = statConn.ReadCounter
-	}
+
 	if c, ok := iConn.(*internet.PacketConnWrapper); ok && UDPOverride.Address == nil && UDPOverride.Port == 0 {
 		return &PacketReader{
 			PacketConnWrapper: c,
-			Counter:           counter,
 		}
 	}
 	return &buf.PacketReader{Reader: conn}
@@ -225,7 +220,6 @@ func NewPacketReader(conn net.Conn, UDPOverride net.Destination) buf.Reader {
 
 type PacketReader struct {
 	*internet.PacketConnWrapper
-	stats.Counter
 }
 
 func (r *PacketReader) ReadMultiBuffer() (buf.MultiBuffer, error) {
@@ -242,9 +236,7 @@ func (r *PacketReader) ReadMultiBuffer() (buf.MultiBuffer, error) {
 		Port:    net.Port(d.(*net.UDPAddr).Port),
 		Network: net.Network_UDP,
 	}
-	if r.Counter != nil {
-		r.Counter.Add(int64(n))
-	}
+
 	return buf.MultiBuffer{b}, nil
 }
 
@@ -254,14 +246,9 @@ func NewPacketWriter(conn net.Conn, h *Handler, ctx context.Context, UDPOverride
 	if ok {
 		iConn = statConn.Connection
 	}
-	var counter stats.Counter
-	if statConn != nil {
-		counter = statConn.WriteCounter
-	}
 	if c, ok := iConn.(*internet.PacketConnWrapper); ok {
 		return &PacketWriter{
 			PacketConnWrapper: c,
-			Counter:           counter,
 			Handler:           h,
 			Context:           ctx,
 			UDPOverride:       UDPOverride,
@@ -272,7 +259,6 @@ func NewPacketWriter(conn net.Conn, h *Handler, ctx context.Context, UDPOverride
 
 type PacketWriter struct {
 	*internet.PacketConnWrapper
-	stats.Counter
 	*Handler
 	context.Context
 	UDPOverride net.Destination
@@ -285,7 +271,6 @@ func (w *PacketWriter) WriteMultiBuffer(mb buf.MultiBuffer) error {
 		if b == nil {
 			break
 		}
-		var n int
 		var err error
 		if b.UDP != nil {
 			if w.UDPOverride.Address != nil {
@@ -305,17 +290,14 @@ func (w *PacketWriter) WriteMultiBuffer(mb buf.MultiBuffer) error {
 				b.Release()
 				continue
 			}
-			n, err = w.PacketConnWrapper.WriteTo(b.Bytes(), destAddr)
+			_, err = w.PacketConnWrapper.WriteTo(b.Bytes(), destAddr)
 		} else {
-			n, err = w.PacketConnWrapper.Write(b.Bytes())
+			_, err = w.PacketConnWrapper.Write(b.Bytes())
 		}
 		b.Release()
 		if err != nil {
 			buf.ReleaseMulti(mb)
 			return err
-		}
-		if w.Counter != nil {
-			w.Counter.Add(int64(n))
 		}
 	}
 	return nil

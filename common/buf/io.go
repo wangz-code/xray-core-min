@@ -6,9 +6,6 @@ import (
 	"os"
 	"syscall"
 	"time"
-
-	"github.com/xtls/xray-core/features/stats"
-	"github.com/xtls/xray-core/transport/internet/stat"
 )
 
 // Reader extends io.Reader with MultiBuffer.
@@ -32,13 +29,13 @@ type Writer interface {
 }
 
 // WriteAllBytes ensures all bytes are written into the given writer.
-func WriteAllBytes(writer io.Writer, payload []byte, c stats.Counter) error {
+func WriteAllBytes(writer io.Writer, payload []byte) error {
 	wc := 0
-	defer func() {
-		if c != nil {
-			c.Add(int64(wc))
-		}
-	}()
+	// defer func() {
+	// 	if c != nil {
+	// 		c.Add(int64(wc))
+	// 	}
+	// }()
 
 	for len(payload) > 0 {
 		n, err := writer.Write(payload)
@@ -76,13 +73,8 @@ func NewReader(reader io.Reader) Reader {
 			if err != nil {
 				newError("failed to get sysconn").Base(err).WriteToLog()
 			} else {
-				var counter stats.Counter
 
-				if statConn, ok := reader.(*stat.CounterConnection); ok {
-					reader = statConn.Connection
-					counter = statConn.ReadCounter
-				}
-				return NewReadVReader(reader, rawConn, counter)
+				return NewReadVReader(reader, rawConn)
 			}
 		}
 	}
@@ -122,9 +114,6 @@ func NewWriter(writer io.Writer) Writer {
 	}
 
 	iConn := writer
-	if statConn, ok := writer.(*stat.CounterConnection); ok {
-		iConn = statConn.Connection
-	}
 
 	if isPacketWriter(iConn) {
 		return &SequentialWriter{
@@ -132,13 +121,7 @@ func NewWriter(writer io.Writer) Writer {
 		}
 	}
 
-	var counter stats.Counter
-
-	if statConn, ok := writer.(*stat.CounterConnection); ok {
-		counter = statConn.WriteCounter
-	}
 	return &BufferToBytesWriter{
-		Writer:  iConn,
-		counter: counter,
+		Writer: iConn,
 	}
 }

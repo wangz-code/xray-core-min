@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/base64"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 	"sync"
@@ -208,6 +209,8 @@ func fillRequestHeader(ctx context.Context, header []*Header) ([]*Header, error)
 
 // setUpHTTPTunnel will create a socket tunnel via HTTP CONNECT method
 func setUpHTTPTunnel(ctx context.Context, dest net.Destination, target string, user *protocol.MemoryUser, dialer internet.Dialer, header []*Header, firstPayload []byte) (net.Conn, error) {
+
+	log.Println("target", target)
 	req := &http.Request{
 		Method: http.MethodConnect,
 		URL:    &url.URL{Host: target},

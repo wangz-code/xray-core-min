@@ -48,7 +48,7 @@ func NewCryptionWriter(stream cipher.Stream, writer io.Writer) *CryptionWriter {
 func (w *CryptionWriter) Write(data []byte) (int, error) {
 	w.stream.XORKeyStream(data, data)
 
-	if err := buf.WriteAllBytes(w.writer, data, nil); err != nil {
+	if err := buf.WriteAllBytes(w.writer, data); err != nil {
 		return 0, err
 	}
 	return len(data), nil

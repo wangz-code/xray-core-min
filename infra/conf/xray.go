@@ -2,7 +2,6 @@ package conf
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"os"
 	"strings"
@@ -163,86 +162,10 @@ type InboundDetourConfig struct {
 // Build implements Buildable.
 func (c *InboundDetourConfig) Build() (*core.InboundHandlerConfig, error) {
 	receiverSettings := &proxyman.ReceiverConfig{}
-
-	if c.ListenOn == nil {
-		// Listen on anyip, must set PortList
-		if c.PortList == nil {
-			return nil, newError("Listen on AnyIP but no Port(s) set in InboundDetour.")
-		}
-		receiverSettings.PortList = c.PortList.Build()
-	} else {
-		// Listen on specific IP or Unix Domain Socket
-		receiverSettings.Listen = c.ListenOn.Build()
-		listenDS := c.ListenOn.Family().IsDomain() && (c.ListenOn.Domain()[0] == '/' || c.ListenOn.Domain()[0] == '@')
-		listenIP := c.ListenOn.Family().IsIP() || (c.ListenOn.Family().IsDomain() && c.ListenOn.Domain() == "localhost")
-		if listenIP {
-			// Listen on specific IP, must set PortList
-			if c.PortList == nil {
-				return nil, newError("Listen on specific ip without port in InboundDetour.")
-			}
-			// Listen on IP:Port
-			receiverSettings.PortList = c.PortList.Build()
-		} else if listenDS {
-			if c.PortList != nil {
-				// Listen on Unix Domain Socket, PortList should be nil
-				receiverSettings.PortList = nil
-			}
-		} else {
-			return nil, newError("unable to listen on domain address: ", c.ListenOn.Domain())
-		}
-	}
-
-	if c.Allocation != nil {
-		concurrency := -1
-		if c.Allocation.Concurrency != nil && c.Allocation.Strategy == "random" {
-			concurrency = int(*c.Allocation.Concurrency)
-		}
-		portRange := 0
-
-		for _, pr := range c.PortList.Range {
-			portRange += int(pr.To - pr.From + 1)
-		}
-		if concurrency >= 0 && concurrency >= portRange {
-			var ports strings.Builder
-			for _, pr := range c.PortList.Range {
-				fmt.Fprintf(&ports, "%d-%d ", pr.From, pr.To)
-			}
-			return nil, newError("not enough ports. concurrency = ", concurrency, " ports: ", ports.String())
-		}
-
-		as, err := c.Allocation.Build()
-		if err != nil {
-			return nil, err
-		}
-		receiverSettings.AllocationStrategy = as
-	}
-	if c.StreamSetting != nil {
-		ss, err := c.StreamSetting.Build()
-		if err != nil {
-			return nil, err
-		}
-		receiverSettings.StreamSettings = ss
-	}
-	if c.SniffingConfig != nil {
-		s, err := c.SniffingConfig.Build()
-		if err != nil {
-			return nil, newError("failed to build sniffing config").Base(err)
-		}
-		receiverSettings.SniffingSettings = s
-	}
-	if c.DomainOverride != nil {
-		kp, err := toProtocolList(*c.DomainOverride)
-		if err != nil {
-			return nil, newError("failed to parse inbound detour config").Base(err)
-		}
-		receiverSettings.DomainOverride = kp
-	}
-
+	receiverSettings.PortList = c.PortList.Build()
 	settings := []byte("{}")
-	if c.Settings != nil {
-		settings = ([]byte)(*c.Settings)
-	}
 	rawConfig, err := inboundConfigLoader.LoadWithID(settings, c.Protocol)
+
 	if err != nil {
 		return nil, newError("failed to load inbound detour config.").Base(err)
 	}
@@ -520,40 +443,13 @@ func (c *Config) Build() (*core.Config, error) {
 	}
 
 	var inbounds []InboundDetourConfig
-
-	if c.InboundConfig != nil {
-		inbounds = append(inbounds, *c.InboundConfig)
+	inbounds = append(inbounds, c.InboundConfigs...)
+	rawInboundConfig := inbounds[0]
+	ic, err := rawInboundConfig.Build()
+	if err != nil {
+		return nil, err
 	}
-
-	if len(c.InboundDetours) > 0 {
-		inbounds = append(inbounds, c.InboundDetours...)
-	}
-
-	if len(c.InboundConfigs) > 0 {
-		inbounds = append(inbounds, c.InboundConfigs...)
-	}
-
-	// Backward compatibility.
-	if len(inbounds) > 0 && inbounds[0].PortList == nil && c.Port > 0 {
-		inbounds[0].PortList = &PortList{[]PortRange{{
-			From: uint32(c.Port),
-			To:   uint32(c.Port),
-		}}}
-	}
-
-	for _, rawInboundConfig := range inbounds {
-		if c.Transport != nil {
-			if rawInboundConfig.StreamSetting == nil {
-				rawInboundConfig.StreamSetting = &StreamConfig{}
-			}
-			applyTransportConfig(rawInboundConfig.StreamSetting, c.Transport)
-		}
-		ic, err := rawInboundConfig.Build()
-		if err != nil {
-			return nil, err
-		}
-		config.Inbound = append(config.Inbound, ic)
-	}
+	config.Inbound = append(config.Inbound, ic)
 
 	var outbounds []OutboundDetourConfig
 

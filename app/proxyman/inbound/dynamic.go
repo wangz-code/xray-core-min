@@ -117,8 +117,6 @@ func (h *DynamicInboundHandler) refresh() error {
 		address = net.AnyIP
 	}
 
-	uplinkCounter, downlinkCounter := getStatCounter(h.v, h.tag)
-
 	for i := uint32(0); i < concurrency; i++ {
 		port := h.allocatePort()
 		rawProxy, err := core.CreateObject(h.v, h.proxyConfig)
@@ -130,17 +128,15 @@ func (h *DynamicInboundHandler) refresh() error {
 		nl := p.Network()
 		if net.HasNetwork(nl, net.Network_TCP) {
 			worker := &tcpWorker{
-				tag:             h.tag,
-				address:         address,
-				port:            port,
-				proxy:           p,
-				stream:          h.streamSettings,
-				recvOrigDest:    h.receiverConfig.ReceiveOriginalDestination,
-				dispatcher:      h.mux,
-				sniffingConfig:  h.receiverConfig.GetEffectiveSniffingSettings(),
-				uplinkCounter:   uplinkCounter,
-				downlinkCounter: downlinkCounter,
-				ctx:             h.ctx,
+				tag:            h.tag,
+				address:        address,
+				port:           port,
+				proxy:          p,
+				stream:         h.streamSettings,
+				recvOrigDest:   h.receiverConfig.ReceiveOriginalDestination,
+				dispatcher:     h.mux,
+				sniffingConfig: h.receiverConfig.GetEffectiveSniffingSettings(),
+				ctx:            h.ctx,
 			}
 			if err := worker.Start(); err != nil {
 				newError("failed to create TCP worker").Base(err).AtWarning().WriteToLog()
