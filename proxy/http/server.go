@@ -105,17 +105,6 @@ Start:
 		}
 		return trace
 	}
-
-	if len(s.config.Accounts) > 0 {
-		user, pass, ok := parseBasicAuth(request.Header.Get("Proxy-Authorization"))
-		if !ok || !s.config.HasAccount(user, pass) {
-			return common.Error2(conn.Write([]byte("HTTP/1.1 407 Proxy Authentication Required\r\nProxy-Authenticate: Basic realm=\"proxy\"\r\n\r\n")))
-		}
-		if inbound != nil {
-			inbound.User.Email = user
-		}
-	}
-
 	newError("request to Method [", request.Method, "] Host [", request.Host, "] with URL [", request.URL, "]").WriteToLog(session.ExportIDToError(ctx))
 	if err := conn.SetReadDeadline(time.Time{}); err != nil {
 		newError("failed to clear read deadline").Base(err).WriteToLog(session.ExportIDToError(ctx))
@@ -175,17 +164,6 @@ func (s *Server) handleConnect(ctx context.Context, _ *http.Request, reader *buf
 	link, err := dispatcher.Dispatch(ctx, dest)
 	if err != nil {
 		return err
-	}
-
-	if reader.Buffered() > 0 {
-		payload, err := buf.ReadFrom(io.LimitReader(reader, int64(reader.Buffered())))
-		if err != nil {
-			return err
-		}
-		if err := link.Writer.WriteMultiBuffer(payload); err != nil {
-			return err
-		}
-		reader = nil
 	}
 
 	requestDone := func() error {

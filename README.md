@@ -13,8 +13,6 @@ main.go 放倒外面其他的只要 config.json 中没有使用的全都删除,�
 -   freedom
 -   vless
 
-> 删了这么多竟然还能运行, 我震惊一百年!
-
 ### Linux / macOS
 
 ```bash

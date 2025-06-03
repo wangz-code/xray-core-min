@@ -167,17 +167,6 @@ func New(config *Config) (*Instance, error) {
 	return server, nil
 }
 
-func NewWithContext(ctx context.Context, config *Config) (*Instance, error) {
-	server := &Instance{ctx: ctx}
-
-	done, err := initInstanceWithConfig(config, server)
-	if done {
-		return nil, err
-	}
-
-	return server, nil
-}
-
 /*
 * 初始化一个服务器实例。它接收一个配置对象和一个服务器实例作为参数，并根据配置对服务器实例进行初始化设置。
 函数的具体步骤如下：
@@ -194,15 +183,9 @@ func NewWithContext(ctx context.Context, config *Config) (*Instance, error) {
 *
 */
 func initInstanceWithConfig(config *Config, server *Instance) (bool, error) {
+
 	server.ctx = context.WithValue(server.ctx, "cone",
 		platform.NewEnvFlag(platform.UseCone).GetValue(func() string { return "" }) != "true")
-
-	if config.Transport != nil {
-		features.PrintDeprecatedFeatureWarning("global transport settings")
-	}
-	if err := config.Transport.Apply(); err != nil {
-		return true, err
-	}
 
 	for _, appSettings := range config.App {
 		settings, err := appSettings.GetInstance()
@@ -213,6 +196,7 @@ func initInstanceWithConfig(config *Config, server *Instance) (bool, error) {
 		if err != nil {
 			return true, err
 		}
+
 		if feature, ok := obj.(features.Feature); ok {
 			if err := server.AddFeature(feature); err != nil {
 				return true, err
